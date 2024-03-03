@@ -18,19 +18,19 @@ const svg = d3.select('.svg-container')
   .attr('width', width)
   .attr('height', height)
 
-const xScale = d3.scaleLinear(
-  [minYear, maxYear],
-  [padding, width - padding]
-)
+const years = data.monthlyVariance.filter((item, index, array) => {
+  return index === 0 || item.year !== array[index - 1].year
+}).map(item => item.year)
 
-const yScale = d3.scaleBand(
-  Array(12).fill(0).map((_, index) => index),
-  [height - padding, padding]
-)
+const xScale = d3.scaleBand(years, [padding, width - padding])
+
+const months = Array(12).fill(0).map((_, index) => index)
+
+const yScale = d3.scaleBand(months, [height - padding, padding])
 
 const xAxis = d3.axisBottom(xScale)
+  .tickValues(years.filter(year => year % 10 === 0))
   .tickFormat(d3.format(''))
-  .ticks(20)
 
 const yAxis = d3.axisLeft(yScale)
   .tickFormat(number => {
@@ -39,9 +39,23 @@ const yAxis = d3.axisLeft(yScale)
   })
 
 svg.append('g')
+  .attr('id', 'x-axis')
   .attr('transform', `translate(0, ${height - padding})`)
   .call(xAxis)
 
 svg.append('g')
+  .attr('id', 'y-axis')
   .attr('transform', `translate(${padding}, 0)`)
   .call(yAxis)
+
+svg.selectAll('rect.cell')
+  .data(data.monthlyVariance)
+  .join('rect')
+  .classed('cell', true)
+  .attr('x', d => xScale(d.year))
+  .attr('y', d => yScale(d.month - 1))
+  .attr('width', (width - padding * 2) / years.length)
+  .attr('height', (height - padding * 2) / 12)
+  .attr('data-month', d => d.month)
+  .attr('data-year', d => d.year)
+  .attr('data-temp', d => data.baseTemperature + d.variance)

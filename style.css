@@ -15,6 +15,7 @@
   flex-direction: column;
   align-items: center;
   position: absolute;
+  transform: translate(-50%, -110%);
   padding: 7px;
   border-radius: 5px;
   background-color: #000000cb;
@@ -23,4 +24,9 @@
 
 .tooltip > p {
   margin: 3px;
+}
+
+.cell:hover {
+  stroke-width: 2px;
+  stroke: black;
 }

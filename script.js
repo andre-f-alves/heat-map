@@ -14,8 +14,8 @@ const tooltip = d3.select('.svg-container')
   .classed('tooltip', true)
   .attr('id', 'tooltip')
 
-const width = 2000
-const height = 700
+const width = 1800
+const height = 600
 const padding = 60
 
 const svg = d3.select('.svg-container')
@@ -43,8 +43,7 @@ const yAxis = d3.axisLeft(yScale)
     return d3.timeFormat('%B')(month)
   })
 
-const colorScheme = d3.schemeRdYlBu[9].map((_, index, array) => array[array.length - index - 1])
-
+const colorScheme = d3.reverse(d3.schemeRdYlBu[11])
 const temperatures = d3.extent(data.monthlyVariance, (item) => item.variance)
 
 const colorScale = d3.scaleQuantize(temperatures, colorScheme)
@@ -72,12 +71,17 @@ const rects = svg.selectAll('rect.cell')
   .attr('data-temp', d => data.baseTemperature + d.variance)
   .attr('fill', d => colorScale(d.variance))
 
-rects.on('mouseover', (_, d) => {
+rects.on('mouseover', (event, d) => {
+  const x = event.target.x.baseVal.value
+  const y = event.target.y.baseVal.value
+
   tooltip.classed('active', true)
+    .style('left', x + 'px')
+    .style('top', y + 'px')
     .html(`
       <p>${d.year} - ${d3.timeFormat('%B')(d3.timeMonth().setMonth(d.month - 1))}</p>
       <p>${parseFloat(data.baseTemperature + d.variance).toFixed(1)}</p>
-      <p>${parseFloat(d.variance).toFixed(1)}</p>
+      <p>${d3.format('+.1f')(d.variance)}</p>
     `)
 })
 

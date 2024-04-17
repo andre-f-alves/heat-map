@@ -1,10 +1,23 @@
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm'
 
+function setThresholdValues(min, max, counter) {
+  const thresholdValues = []
+  const step = (max - min) / counter
+
+  for (let i = 1; i < counter; i++) {
+    thresholdValues.push(min + step * i)
+  }
+
+  return thresholdValues
+}
+
 const endpoint = 'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json'
 
 const data = await d3.json(endpoint)
 
-const [minYear, maxYear] = d3.extent(data.monthlyVariance, item => item.year)
+console.log(data)
+
+const [ minYear, maxYear ] = d3.extent(data.monthlyVariance, item => item.year)
 
 d3.select('#description')
   .text(`${minYear} - ${maxYear}: base temperature ${data.baseTemperature}°C`)
@@ -14,7 +27,7 @@ const tooltip = d3.select('.svg-container')
   .classed('tooltip', true)
   .attr('id', 'tooltip')
 
-const width = 1800
+const width = 1500
 const height = 600
 const padding = 60
 
@@ -44,9 +57,13 @@ const yAxis = d3.axisLeft(yScale)
   })
 
 const colorScheme = d3.reverse(d3.schemeRdYlBu[11])
-const temperatures = d3.extent(data.monthlyVariance, (item) => item.variance)
+const [ minTemp, maxTemp ] = d3.extent(data.monthlyVariance, (d) => data.baseTemperature + d.variance)
 
-const colorScale = d3.scaleQuantize(temperatures, colorScheme)
+const thresholdValues = setThresholdValues(minTemp, maxTemp, colorScheme.length)
+
+const colorScale = d3.scaleThreshold(thresholdValues, colorScheme)
+
+// console.log(thresholdValues)
 
 svg.append('g')
   .attr('id', 'x-axis')
@@ -66,21 +83,22 @@ const rects = svg.selectAll('rect.cell')
   .attr('y', d => yScale(d.month - 1))
   .attr('width', (width - padding * 2) / years.length)
   .attr('height', (height - padding * 2) / 12)
-  .attr('data-month', d => d.month)
+  .attr('data-month', d => d.month - 1)
   .attr('data-year', d => d.year)
   .attr('data-temp', d => data.baseTemperature + d.variance)
-  .attr('fill', d => colorScale(d.variance))
+  .attr('fill', d => colorScale(data.baseTemperature + d.variance))
 
 rects.on('mouseover', (event, d) => {
   const x = event.target.x.baseVal.value
   const y = event.target.y.baseVal.value
 
   tooltip.classed('active', true)
+    .attr('data-year', event.target.getAttribute('data-year'))
     .style('left', x + 'px')
     .style('top', y + 'px')
     .html(`
       <p>${d.year} - ${d3.timeFormat('%B')(d3.timeMonth().setMonth(d.month - 1))}</p>
-      <p>${parseFloat(data.baseTemperature + d.variance).toFixed(1)}</p>
+      <p>${d3.format('.1f')(data.baseTemperature + d.variance)}</p>
       <p>${d3.format('+.1f')(d.variance)}</p>
     `)
 })

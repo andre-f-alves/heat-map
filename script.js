@@ -4,7 +4,7 @@ function setThresholdValues(min, max, counter) {
   const thresholdValues = []
   const step = (max - min) / counter
 
-  for (let i = 1; i < counter; i++) {
+  for (let i = 1; i <= counter; i++) {
     thresholdValues.push(min + step * i)
   }
 
@@ -29,7 +29,12 @@ const tooltip = d3.select('.svg-container')
 
 const width = 1500
 const height = 600
-const padding = 60
+const padding = {
+  top: 50,
+  right: 30,
+  bottom: 200,
+  left: 90
+}
 
 const svg = d3.select('.svg-container')
   .append('svg')
@@ -40,11 +45,11 @@ const years = data.monthlyVariance.filter((item, index, array) => {
   return index === 0 || item.year !== array[index - 1].year
 }).map(item => item.year)
 
-const xScale = d3.scaleBand(years, [padding, width - padding])
+const xScale = d3.scaleBand(years, [padding.left, width - padding.right])
 
 const months = Array(12).fill(0).map((_, index) => index)
 
-const yScale = d3.scaleBand(months, [height - padding, padding])
+const yScale = d3.scaleBand(months, [height - padding.bottom, padding.top])
 
 const xAxis = d3.axisBottom(xScale)
   .tickValues(years.filter(year => year % 10 === 0))
@@ -63,16 +68,14 @@ const thresholdValues = setThresholdValues(minTemp, maxTemp, colorScheme.length)
 
 const colorScale = d3.scaleThreshold(thresholdValues, colorScheme)
 
-// console.log(thresholdValues)
-
 svg.append('g')
   .attr('id', 'x-axis')
-  .attr('transform', `translate(0, ${height - padding})`)
+  .attr('transform', `translate(0, ${height - padding.bottom})`)
   .call(xAxis)
 
 svg.append('g')
   .attr('id', 'y-axis')
-  .attr('transform', `translate(${padding}, 0)`)
+  .attr('transform', `translate(${padding.left}, 0)`)
   .call(yAxis)
 
 const rects = svg.selectAll('rect.cell')
@@ -81,8 +84,8 @@ const rects = svg.selectAll('rect.cell')
   .classed('cell', true)
   .attr('x', d => xScale(d.year))
   .attr('y', d => yScale(d.month - 1))
-  .attr('width', (width - padding * 2) / years.length)
-  .attr('height', (height - padding * 2) / 12)
+  .attr('width', (width - (padding.left + padding.right)) / years.length)
+  .attr('height', (height - (padding.top + padding.bottom)) / 12)
   .attr('data-month', d => d.month - 1)
   .attr('data-year', d => d.year)
   .attr('data-temp', d => data.baseTemperature + d.variance)
@@ -104,3 +107,31 @@ rects.on('mouseover', (event, d) => {
 })
 
 rects.on('mouseout', () => tooltip.classed('active', false))
+
+const legendScale = d3.scaleLinear(
+  [thresholdValues[0], thresholdValues[thresholdValues.length - 1]],
+  [padding.left, 380]
+)
+
+const legend = svg.append('g')
+  .attr('id', 'legend')
+
+const legendXAxis = d3.axisBottom(legendScale)
+  .tickValues(colorScale.domain())
+  .tickFormat(d3.format('.1f'))
+
+legend.append('g')
+  .attr('id', 'legend-x-axis')
+  .attr('transform', `translate(0, ${height - 60})`)
+  .call(legendXAxis)
+
+const colors = colorScale.domain().slice(0, -1)
+
+legend.selectAll('rect')
+  .data(colors)
+  .join('rect')
+  .attr('x', (d) => legendScale(d))
+  .attr('y', height - 90)
+  .attr('width', 30)
+  .attr('height', 30)
+  .attr('fill', (d) => colorScale(d))
